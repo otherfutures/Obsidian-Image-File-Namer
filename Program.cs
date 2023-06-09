@@ -1,7 +1,9 @@
 ﻿/*
 Generates image filenames for Obsidian MarkDown notes by appending an incr. number
 
-E.g. image.jpg -> image-1.jpg
+    E.g. image.jpg -> image.jpg, image-1.jpg, ..., image-12.jpg, etc.
+
+Has Console.WriteLine() for filenames as a redundancy; commented out by default
 */
 
 using System;
@@ -15,6 +17,7 @@ namespace ImageFileNamer
         private TextBox inputTextBox;
         private TextBox inputLimitBox;
         private CheckBox closeCheckBox;
+        private CheckBox confirmationMsg;
         private Button generateButton;
 
         [STAThread]
@@ -35,6 +38,7 @@ namespace ImageFileNamer
             inputLimitBox = new TextBox();
             generateButton = new Button();
             closeCheckBox = new CheckBox();
+            confirmationMsg = new CheckBox();
             SuspendLayout();
             // 
             // inputTextBox
@@ -44,6 +48,7 @@ namespace ImageFileNamer
             inputTextBox.Size = new Size(200, 23);
             inputTextBox.TabIndex = 0;
             inputTextBox.Text = "Filename (incl. ext.)";
+            inputTextBox.KeyPress += InputBox_KeyPress;
             // 
             // inputLimitBox
             // 
@@ -52,11 +57,12 @@ namespace ImageFileNamer
             inputLimitBox.Size = new Size(200, 23);
             inputLimitBox.TabIndex = 1;
             inputLimitBox.Text = "Limit";
-            inputLimitBox.KeyPress += InputLimitBox_KeyPress;
+            inputLimitBox.KeyPress += InputBox_KeyPress;
             // 
             // generateButton
             // 
-            generateButton.Location = new Point(12, 60);
+            generateButton.FlatStyle = FlatStyle.Flat;
+            generateButton.Location = new Point(12, 63);
             generateButton.Name = "generateButton";
             generateButton.Size = new Size(200, 82);
             generateButton.TabIndex = 2;
@@ -75,13 +81,29 @@ namespace ImageFileNamer
             closeCheckBox.Text = "Close after copying";
             closeCheckBox.UseVisualStyleBackColor = true;
             // 
+            // confirmationMsg
+            // 
+            confirmationMsg.AutoSize = true;
+            confirmationMsg.Checked = true;
+            confirmationMsg.CheckState = CheckState.Checked;
+            confirmationMsg.Location = new Point(12, 168);
+            confirmationMsg.Name = "confirmationMsg";
+            confirmationMsg.Size = new Size(187, 19);
+            confirmationMsg.TabIndex = 4;
+            confirmationMsg.Text = "Don't show confirmation msg.";
+            confirmationMsg.UseVisualStyleBackColor = true;
+            // 
             // Program
             // 
-            ClientSize = new Size(223, 175);
+            BackColor = SystemColors.Desktop;
+            BackgroundImageLayout = ImageLayout.None;
+            ClientSize = new Size(224, 200);
+            Controls.Add(confirmationMsg);
             Controls.Add(closeCheckBox);
             Controls.Add(inputTextBox);
             Controls.Add(inputLimitBox);
             Controls.Add(generateButton);
+            ForeColor = SystemColors.Control;
             Name = "Program";
             ResumeLayout(false);
             PerformLayout();
@@ -92,39 +114,38 @@ namespace ImageFileNamer
         {
             string input = inputTextBox.Text.Trim();
             int limit;
+            string filename = Path.GetFileNameWithoutExtension(input);
+            string ext = Path.GetExtension(input);
+            int counter = 1;
 
             if (string.IsNullOrEmpty(input))
             {
-                MessageBox.Show("Please enter a valid input.");
+                MessageBox.Show("Please enter a valid input");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(ext) || ext == ".")
+            {
+                MessageBox.Show("Please include a filename extension (e.g. .jpg)");
                 return;
             }
 
             if (!int.TryParse(inputLimitBox.Text, out limit) || string.IsNullOrEmpty(inputLimitBox.Text))
             {
-                MessageBox.Show("Please enter a valid limit.");
+                MessageBox.Show("Please enter a valid limit");
                 return;
             }
-
-            if (Path.GetExtension(input) == null)
-            {
-                MessageBox.Show("Please enter a valid filename extension (e.g. .jpg)");
-                return;
-            }
-
-            string filename = Path.GetFileNameWithoutExtension(input);
-            string ext = Path.GetExtension(input);
-            int counter = 1;
 
             using (StringWriter stringWriter = new StringWriter())
             {
-                Console.WriteLine(input); // Prints as redundancy
+                // Console.WriteLine(input); // Prints as redundancy
                 stringWriter.WriteLine(input); // Add orig. filename to clipboard list
 
                 // Iter. up to the limit
                 while (counter <= limit)
                 {
                     string newFilename = $"{filename}-{counter}{ext}";
-                    Console.WriteLine(newFilename); // Redundancy in case clipboard fails
+                    // Console.WriteLine(newFilename); // Redundancy in case clipboard fails
                     stringWriter.WriteLine(newFilename); // Adds filename iter. to clipboard
                     counter++; // Incr. counter to reach user req. limit
                 }
@@ -132,7 +153,10 @@ namespace ImageFileNamer
                 Clipboard.SetText(stringWriter.ToString()); // The whole enchilada
             }
 
-            MessageBox.Show("Print output copied to clipboard.");
+            if (!confirmationMsg.Checked)
+            {
+                MessageBox.Show("Print output copied to clipboard.");
+            }
 
             if (closeCheckBox.Checked)
             {
@@ -140,7 +164,7 @@ namespace ImageFileNamer
             }
         }
 
-        private void InputLimitBox_KeyPress(object sender, KeyPressEventArgs e)
+        private void InputBox_KeyPress(object sender, KeyPressEventArgs e)
         {
             if (e.KeyChar == (char)Keys.Enter)
             {
